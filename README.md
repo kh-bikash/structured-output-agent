@@ -39,6 +39,25 @@ print(result.value, result.attempts, result.validation_failures)
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    Task[Task] --> Prompt[Schema prompt]
+    Schema[Pydantic model] --> Prompt
+    Prompt --> LLM[Model adapter]
+    LLM --> Validate[Strict JSON validation]
+    Tool[Tool JSON] --> Validate
+    Validate -->|Valid| Typed[Typed result and metrics]
+    Validate -->|Invalid and retries remain| Repair[Bounded repair feedback]
+    Repair --> LLM
+    Validate -->|Exhausted| Error[Validation error]
+```
+
+| Component | Responsibility |
+|---|---|
+| Schema boundary | Pydantic validates model and tool JSON with strict types. |
+| Repair controller | Retries only a configured number of times with bounded feedback. |
+| Event sink | Emits outcome and timing without raw model content. |
+
 Caller -> schema JSON in system prompt -> model -> Pydantic validation -> bounded repair prompt -> typed result or OutputValidationError.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for components, state, failure behavior, and operations.

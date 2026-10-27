@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass
 from typing import Protocol
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
@@ -39,8 +40,10 @@ class OpenAICompatibleLLM:
     def complete(
         self, messages: list[dict[str, str]], *, model: str | None = None
     ) -> str:
-        if not self.base_url.startswith("https://") and not self.base_url.startswith(
-            "http://localhost"
+        parsed = urlparse(self.base_url)
+        if parsed.scheme != "https" and not (
+            parsed.scheme == "http"
+            and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
         ):
             raise ValueError(
                 "Model endpoint must use HTTPS (or localhost for development)"

@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -16,7 +17,9 @@ T = TypeVar("T", bound=BaseModel)
 class OutputValidationError(Exception):
     def __init__(self, failures: list[str]):
         self.failures = failures
-        super().__init__("Model output failed validation after retries: " + "; ".join(failures))
+        super().__init__(
+            "Model output failed validation after retries: " + "; ".join(failures)
+        )
 
 
 @dataclass(frozen=True)
@@ -49,8 +52,15 @@ def validate_tool_response(raw: str, schema: type[T]) -> T:
 
 
 class StructuredOutputAgent(Generic[T]):
-    def __init__(self, llm: LLM, schema: type[T], *, max_retries: int = 2,
-                 max_output_chars: int = 100_000, event_sink: Callable[[ValidationEvent], None] | None = None):
+    def __init__(
+        self,
+        llm: LLM,
+        schema: type[T],
+        *,
+        max_retries: int = 2,
+        max_output_chars: int = 100_000,
+        event_sink: Callable[[ValidationEvent], None] | None = None,
+    ):
         if max_retries < 0:
             raise ValueError("max_retries must be nonnegative")
         if max_output_chars < 100:
@@ -62,7 +72,11 @@ class StructuredOutputAgent(Generic[T]):
         started = time.monotonic()
         schema = json.dumps(self.schema.model_json_schema(), separators=(",", ":"))
         messages = [
-            {"role": "system", "content": "Return only one JSON object matching this schema: " + schema},
+            {
+                "role": "system",
+                "content": "Return only one JSON object matching this schema: "
+                + schema,
+            },
             {"role": "user", "content": task},
         ]
         failures: list[str] = []
@@ -73,15 +87,38 @@ class StructuredOutputAgent(Generic[T]):
                     raise ValueError("model output exceeds max_output_chars")
                 value = self.schema.model_validate_json(_json_body(raw), strict=True)
                 if self.event_sink:
-                    self.event_sink(ValidationEvent(attempt + 1, True, None, (time.monotonic() - started) * 1000))
-                return Result(value, attempt + 1, len(failures), (time.monotonic() - started) * 1000)
+                    self.event_sink(
+                        ValidationEvent(
+                            attempt + 1, True, None, (time.monotonic() - started) * 1000
+                        )
+                    )
+                return Result(
+                    value,
+                    attempt + 1,
+                    len(failures),
+                    (time.monotonic() - started) * 1000,
+                )
             except (ValidationError, ValueError) as exc:
                 reason = str(exc)[:500]
                 failures.append(reason)
                 if self.event_sink:
-                    self.event_sink(ValidationEvent(attempt + 1, False, type(exc).__name__, (time.monotonic() - started) * 1000))
-                messages.extend([
-                    {"role": "assistant", "content": raw[:4000]},
-                    {"role": "user", "content": "Validation failed: " + reason + ". Return corrected JSON only."},
-                ])
+                    self.event_sink(
+                        ValidationEvent(
+                            attempt + 1,
+                            False,
+                            type(exc).__name__,
+                            (time.monotonic() - started) * 1000,
+                        )
+                    )
+                messages.extend(
+                    [
+                        {"role": "assistant", "content": raw[:4000]},
+                        {
+                            "role": "user",
+                            "content": "Validation failed: "
+                            + reason
+                            + ". Return corrected JSON only.",
+                        },
+                    ]
+                )
         raise OutputValidationError(failures)

@@ -24,6 +24,8 @@ pytest -q
 
 For live model calls, set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` and `OPENAI_BASE_URL` as shown in `.env.example`. The test suite uses stubs and needs no model key.
 
+Install the package, then use `structured-output extract "Summarize this support ticket..." --field title:str --field priority:int` to get typed JSON. Use `structured-output validate '{"title":"Bug","priority":2}' --field title:str --field priority:int` to validate locally without a model call. For a browser form, run `structured-output serve --port 8080` and open `http://127.0.0.1:8080`. The browser lets you define `str`, `int`, `float`, or `bool` fields and either extract or validate data.
+
 ```python
 from pydantic import BaseModel, Field
 from structured_output_agent.engine import StructuredOutputAgent
@@ -41,6 +43,8 @@ print(result.value, result.attempts, result.validation_failures)
 
 ```mermaid
 flowchart LR
+    CLI[Command line] --> Task
+    Browser[Browser interface] --> Task
     Task[Task] --> Prompt[Schema prompt]
     Schema[Pydantic model] --> Prompt
     Prompt --> LLM[Model adapter]
@@ -63,6 +67,8 @@ Caller -> schema JSON in system prompt -> model -> Pydantic validation -> bounde
 See [ARCHITECTURE.md](ARCHITECTURE.md) for components, state, failure behavior, and operations.
 
 ## Deployment and safety
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the non-root container, token-protected browser, data mounts, and release checks.
 
 Schema checks constrain shape and values. The caller should still validate business facts against a trusted source. Invalid responses are truncated before being placed in retry prompts.
 

@@ -9,6 +9,9 @@ description = "Schema validation, repair retries, and validation telemetry."
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.8,<3"]
 
+[project.scripts]
+structured-output = "structured_output_agent.__main__:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff==0.17.3"]
 

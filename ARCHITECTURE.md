@@ -26,7 +26,7 @@ The LLM adapter times out after 30 seconds and retries transient HTTP failures t
 
 1. Set secrets through a secret manager and rotate them regularly.
 2. Put the service or integrating application behind TLS and authentication.
-3. Persist SQLite files on durable storage and back them up; migrate to a managed database for high write volume or multiple replicas.
+3. This library is stateless. Persist validation events in the host application's telemetry store if auditability is required.
 4. Run `pytest -q` in CI before deployment.
 5. Define workload specific evaluation cases, latency objectives, and rollback criteria before serving real users.
 

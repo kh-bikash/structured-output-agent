@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 import pytest
 
-from structured_output_agent.engine import OutputValidationError, StructuredOutputAgent
+from structured_output_agent.engine import OutputValidationError, StructuredOutputAgent, validate_tool_response
 
 
 class Invoice(BaseModel):
@@ -27,3 +27,13 @@ def test_exhausts_bounded_retries():
     with pytest.raises(OutputValidationError) as error:
         StructuredOutputAgent(Stub(["{}", "{}"]), Invoice, max_retries=1).run("Extract")
     assert len(error.value.failures) == 2
+
+
+def test_strict_validation_tool_boundary_and_events():
+    events = []
+    agent = StructuredOutputAgent(Stub(['{"amount":"12","currency":"USD"}', '```json\n{"amount":12,"currency":"USD"}\n```']), Invoice, event_sink=events.append)
+    result = agent.run("Extract")
+    assert result.value.amount == 12 and [e.success for e in events] == [False, True]
+    assert validate_tool_response('{"amount":12,"currency":"USD"}', Invoice).currency == "USD"
+    with pytest.raises(OutputValidationError):
+        validate_tool_response('{"amount":"12","currency":"USD"}', Invoice)

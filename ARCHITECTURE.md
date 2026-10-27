@@ -29,3 +29,15 @@ The LLM adapter times out after 30 seconds and retries transient HTTP failures t
 3. Persist SQLite files on durable storage and back them up; migrate to a managed database for high write volume or multiple replicas.
 4. Run `pytest -q` in CI before deployment.
 5. Define workload specific evaluation cases, latency objectives, and rollback criteria before serving real users.
+
+## Contract and control flow
+
+`StructuredOutputAgent[T]` accepts a Pydantic model type and an injected `LLM`. The schema is sent to the model, then each reply is checked with strict Pydantic JSON validation. A complete JSON code fence is accepted; arbitrary surrounding prose is rejected. `max_retries` bounds repair calls, and `max_output_chars` prevents oversized model output from consuming unbounded validation resources. `validate_tool_response` applies the same boundary to JSON returned by tools.
+
+| Outcome | Result |
+|---|---|
+| Valid JSON matching the schema | Typed `Result[T]` with attempt count and elapsed time |
+| Parse or schema failure with retries left | Send a bounded validation error back to the model |
+| Exhausted retries | Raise `OutputValidationError` with per-attempt reasons |
+
+An optional `event_sink` receives success/failure, attempt number, error class, and elapsed time without raw user content. Use that event for dashboards. Do not assume schema validity proves the extracted facts are true.

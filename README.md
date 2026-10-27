@@ -13,6 +13,15 @@ python -m pip install -e '.[dev]'
 pytest -q
 ```
 
+On macOS or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+pytest -q
+```
+
 For live model calls, set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` and `OPENAI_BASE_URL` as shown in `.env.example`. The test suite uses stubs and needs no model key.
 
 ```python

@@ -31,11 +31,15 @@ from pydantic import BaseModel, Field
 from structured_output_agent.engine import StructuredOutputAgent
 from structured_output_agent.llm import OpenAICompatibleLLM
 
+
 class Invoice(BaseModel):
     amount: float = Field(gt=0)
     currency: str = Field(pattern=r"^[A-Z]{3}$")
 
-result = StructuredOutputAgent(OpenAICompatibleLLM.from_env(), Invoice).run("Extract: USD 42.50")
+
+result = StructuredOutputAgent(OpenAICompatibleLLM.from_env(), Invoice).run(
+    "Extract: USD 42.50"
+)
 print(result.value, result.attempts, result.validation_failures)
 ```
 

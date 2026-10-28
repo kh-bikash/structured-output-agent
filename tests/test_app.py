@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.error import HTTPError
+
 from fastapi.testclient import TestClient
 
 import app as hosted
@@ -62,6 +64,19 @@ def test_public_page_and_auth_boundary(monkeypatch):
         headers={"Origin": "https://agents.example.com"},
     )
     assert invalid.status_code == 400
+
+    def provider_down(action, values):
+        raise HTTPError("https://model.example", 403, "blocked", {}, None)
+
+    monkeypatch.setattr(hosted, "execute", provider_down)
+    assert (
+        client.post(
+            "/api/action",
+            json=payload,
+            headers={"Origin": "https://agents.example.com"},
+        ).status_code
+        == 503
+    )
 
 
 def test_unconfigured_auth_is_not_bypassed(monkeypatch):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
 import httpx
@@ -201,6 +202,8 @@ def action(request: Request, payload: ActionRequest):
         raise HTTPException(413, "Field too large")
     try:
         return {"result": execute(payload.action, payload.values)}
+    except (HTTPError, URLError, TimeoutError) as exc:
+        raise HTTPException(503, "Model provider unavailable") from exc
     except (ValueError, RuntimeError, KeyError, OutputValidationError) as exc:
         raise HTTPException(400, str(exc)[:500]) from exc
 

@@ -48,12 +48,25 @@ def main() -> None:
             )
             result.raise_for_status()
             assert result.json()["result"]["value"] == {"title": "Ready", "count": 2}
+            extracted = client.post(
+                f"{hosted}/api/action",
+                headers={"Origin": hosted},
+                json={
+                    "action": "extract",
+                    "values": {
+                        "fields": "title:str\ncount:int",
+                        "task": "Extract title and count from: Ready, 2 items.",
+                    },
+                },
+            )
+            extracted.raise_for_status()
+            assert extracted.json()["result"]["value"] == {"title": "Ready", "count": 2}
             logout = client.post(
                 f"{hosted}/auth/logout", headers={"Origin": hosted}, json={}
             )
             logout.raise_for_status()
             assert client.get(f"{hosted}/api/session").status_code == 401
-            print("Hosted sign-in, validation, and sign-out passed")
+            print("Hosted sign-in, validation, model extraction, and sign-out passed")
         finally:
             if user_id:
                 deleted = client.delete(

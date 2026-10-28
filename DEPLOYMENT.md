@@ -25,7 +25,7 @@ sequenceDiagram
 
 Environment variables are supplied by the Vercel Supabase integration: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (or `SUPABASE_ANON_KEY`). Add `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` and `OPENAI_BASE_URL`, to Vercel project settings to enable live extraction. Do not expose the Supabase secret/service-role key or the model key to the browser. Configure Supabase Auth email delivery, confirmation redirects, and abuse controls before inviting users at scale. The default built-in email service has tight sending limits.
 
-Release procedure: `uv lock --check`, `ruff check app.py src tests`, `ruff format --check app.py src tests`, `pytest -q`, then `vercel deploy --prod`. Verify `/healthz`, an unauthenticated 401 from `/api/session`, signup confirmation, login, refresh, logout, validation, and live extraction with a real provider account. Inspect Vercel runtime logs after each release.
+Release procedure: `uv lock --check`, `ruff check app.py src tests scripts`, `ruff format --check app.py src tests scripts`, `pytest -q`, then `vercel deploy --prod`. Verify `/healthz`, an unauthenticated 401 from `/api/session`, signup confirmation, login, refresh, logout, validation, and live extraction with a real provider account. `scripts/smoke_hosted.py` tests live sign-in, validation, and sign-out with a temporary account; run it only from a trusted operator machine with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set, and never put that key in the web app. Inspect Vercel runtime logs after each release.
 
 ## Local product
 

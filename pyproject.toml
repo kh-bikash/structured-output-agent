@@ -7,7 +7,7 @@ name = "structured-output-agent"
 version = "0.1.0"
 description = "Schema validation, repair retries, and validation telemetry."
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2.8,<3"]
+dependencies = ["pydantic[email]>=2.8,<3", "fastapi>=0.115,<1", "httpx>=0.27,<1"]
 
 [project.scripts]
 structured-output = "structured_output_agent.__main__:main"
@@ -20,4 +20,4 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]

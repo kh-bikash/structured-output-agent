@@ -41,6 +41,17 @@ print(result.value, result.attempts, result.validation_failures)
 
 ## Architecture
 
+The hosted application uses Supabase Auth for email/password sessions. Its API verifies each access token with Supabase before running a product action.
+
+```mermaid
+flowchart LR
+    User[Browser] -->|HTTPS| Vercel[FastAPI on Vercel]
+    Vercel -->|Sign up, sign in, verify token| Auth[Supabase Auth]
+    Vercel -->|Authenticated action| Core[Structured output engine]
+    Core -->|Optional extraction| Provider[OpenAI-compatible model]
+    Core -->|Typed result| Vercel
+```
+
 ```mermaid
 flowchart LR
     CLI[Command line] --> Task
@@ -68,7 +79,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for components, state, failure behavior, 
 
 ## Deployment and safety
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the non-root container, token-protected browser, data mounts, and release checks.
+The hosted interface is at [structured-output-agent.vercel.app](https://structured-output-agent.vercel.app/). See [DEPLOYMENT.md](DEPLOYMENT.md) for Vercel/Supabase setup, the non-root container option, and release checks. Model-backed extraction requires an `OPENAI_API_KEY` in Vercel; schema validation works without it.
 
 Schema checks constrain shape and values. The caller should still validate business facts against a trusted source. Invalid responses are truncated before being placed in retry prompts.
 

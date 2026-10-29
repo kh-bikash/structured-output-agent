@@ -57,6 +57,7 @@ class OpenAICompatibleLLM:
             headers={
                 "Authorization": "Bearer " + self.api_key,
                 "Content-Type": "application/json",
+                "User-Agent": "agent-suite/1.0",
             },
             method="POST",
         )

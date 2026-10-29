@@ -1,6 +1,19 @@
 # Structured Output Agent
 
-Validate model JSON with Pydantic, retry malformed responses with concrete validation feedback, and return attempt metrics.
+## About
+
+This app turns messy text into data your software can use. Give it a task and a list of fields, such as a support ticket's title and priority, and it asks a model for JSON that matches those fields. If the response has the wrong shape or type, the app explains the validation error to the model and retries a limited number of times. You receive the validated value and a record of how many attempts it took.
+
+You can also paste JSON and validate it without calling a model. That is useful when you need to check a tool response or an imported record before it reaches the rest of your system.
+
+### What you can do
+
+- Extract typed fields from notes, tickets, and other text.
+- Check existing JSON against `str`, `int`, `float`, and `bool` fields.
+- See validation failures and retry counts when an extraction is difficult.
+- Use the [hosted app](https://structured-output-agent.vercel.app/), the CLI, the local browser, or the Python library.
+
+The hosted app uses email and password accounts. Validation runs without a model call; extraction uses the configured provider. A valid schema does not prove that the extracted facts are correct, so review important values against their source.
 
 ## Quick start
 
@@ -24,23 +37,42 @@ pytest -q
 
 For live model calls, set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` and `OPENAI_BASE_URL` as shown in `.env.example`. The test suite uses stubs and needs no model key.
 
+Install the package, then use `structured-output extract "Summarize this support ticket..." --field title:str --field priority:int` to get typed JSON. Use `structured-output validate '{"title":"Bug","priority":2}' --field title:str --field priority:int` to validate locally without a model call. For a browser form, run `structured-output serve --port 8080` and open `http://127.0.0.1:8080`. The browser lets you define `str`, `int`, `float`, or `bool` fields and either extract or validate data.
+
 ```python
 from pydantic import BaseModel, Field
 from structured_output_agent.engine import StructuredOutputAgent
 from structured_output_agent.llm import OpenAICompatibleLLM
 
+
 class Invoice(BaseModel):
     amount: float = Field(gt=0)
     currency: str = Field(pattern=r"^[A-Z]{3}$")
 
-result = StructuredOutputAgent(OpenAICompatibleLLM.from_env(), Invoice).run("Extract: USD 42.50")
+
+result = StructuredOutputAgent(OpenAICompatibleLLM.from_env(), Invoice).run(
+    "Extract: USD 42.50"
+)
 print(result.value, result.attempts, result.validation_failures)
 ```
 
 ## Architecture
 
+The hosted application uses Supabase Auth for email/password sessions. Its API verifies each access token with Supabase before running a product action.
+
 ```mermaid
 flowchart LR
+    User[Browser] -->|HTTPS| Vercel[FastAPI on Vercel]
+    Vercel -->|Sign up, sign in, verify token| Auth[Supabase Auth]
+    Vercel -->|Authenticated action| Core[Structured output engine]
+    Core -->|Optional extraction| Provider[OpenAI-compatible model]
+    Core -->|Typed result| Vercel
+```
+
+```mermaid
+flowchart LR
+    CLI[Command line] --> Task
+    Browser[Browser interface] --> Task
     Task[Task] --> Prompt[Schema prompt]
     Schema[Pydantic model] --> Prompt
     Prompt --> LLM[Model adapter]
@@ -63,6 +95,8 @@ Caller -> schema JSON in system prompt -> model -> Pydantic validation -> bounde
 See [ARCHITECTURE.md](ARCHITECTURE.md) for components, state, failure behavior, and operations.
 
 ## Deployment and safety
+
+The hosted interface is at [structured-output-agent.vercel.app](https://structured-output-agent.vercel.app/). See [DEPLOYMENT.md](DEPLOYMENT.md) for Vercel/Supabase setup, the non-root container option, and release checks. Model-backed extraction requires an `OPENAI_API_KEY` in Vercel; schema validation works without it.
 
 Schema checks constrain shape and values. The caller should still validate business facts against a trusted source. Invalid responses are truncated before being placed in retry prompts.
 

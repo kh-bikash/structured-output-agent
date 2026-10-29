@@ -1,6 +1,19 @@
 # Structured Output Agent
 
-Validate model JSON with Pydantic, retry malformed responses with concrete validation feedback, and return attempt metrics.
+## About
+
+This app turns messy text into data your software can use. Give it a task and a list of fields, such as a support ticket's title and priority, and it asks a model for JSON that matches those fields. If the response has the wrong shape or type, the app explains the validation error to the model and retries a limited number of times. You receive the validated value and a record of how many attempts it took.
+
+You can also paste JSON and validate it without calling a model. That is useful when you need to check a tool response or an imported record before it reaches the rest of your system.
+
+### What you can do
+
+- Extract typed fields from notes, tickets, and other text.
+- Check existing JSON against `str`, `int`, `float`, and `bool` fields.
+- See validation failures and retry counts when an extraction is difficult.
+- Use the [hosted app](https://structured-output-agent.vercel.app/), the CLI, the local browser, or the Python library.
+
+The hosted app uses email and password accounts. Validation runs without a model call; extraction uses the configured provider. A valid schema does not prove that the extracted facts are correct, so review important values against their source.
 
 ## Quick start
 

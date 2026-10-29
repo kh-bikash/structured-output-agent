@@ -106,6 +106,51 @@ Install this as a library in an authenticated application or worker. Supply the 
 
 `pytest -q` runs deterministic tests. GitHub Actions runs the same suite on pushes and pull requests.
 
+## Product guide
+
+### Pick the right action
+
+| Action | Give it | Get back | Model call |
+|---|---|---|---|
+| `extract` | A task or source text, plus fields written as `name:type` | A JSON object whose fields passed strict type validation, with attempt counts | Yes |
+| `validate` | Existing JSON plus the same field definition | The parsed, typed value or a validation error | No |
+
+For example, enter `title:str` and `priority:int` on separate lines, then paste a support ticket. If the model returns `"priority":"high"`, the parser rejects it because `priority` must be an integer. The retry prompt includes that concrete problem; after the configured retry limit, the action fails visibly instead of passing bad JSON downstream.
+
+### Where the work runs
+
+- **Hosted web app:** A signed-in user submits a form over HTTPS. The FastAPI endpoint verifies the Supabase session and runs the selected action. The account lives in Supabase Auth; extraction inputs and outputs are not stored in this app's database.
+- **Local browser:** Start `structured-output serve --port 8080`. This is an operator interface on your machine, with the same extract and validate actions.
+- **CLI and library:** Use the `structured-output` command in scripts, or import `StructuredOutputAgent` with your own Pydantic model for richer rules such as ranges and patterns.
+
+### Configuration
+
+| Variable | Needed for | Purpose |
+|---|---|---|
+| `OPENAI_API_KEY` | Model-backed extraction | Server-side credential for an OpenAI-compatible chat API. |
+| `OPENAI_BASE_URL` | Non-default provider | HTTPS API base URL. |
+| `OPENAI_MODEL` | Model-backed extraction | Chat model identifier at that provider. |
+| `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` | Hosted app | Account sign-in and session verification. |
+
+Set credentials through Vercel environment variables or your local shell, never in a committed file. `validate` does not need a model key. The hosted app uses Secure, HttpOnly cookies and checks the request origin before mutating actions.
+
+### Failure behavior and operations
+
+Invalid fields and JSON return a clear validation error. A model outage returns an unavailable response; it does not turn an invalid result into a valid one. A successful type check only establishes the shape and field constraints. For important business decisions, compare extracted facts with the original document or another trusted source.
+
+Before sharing a deployment, run the unit tests and `scripts/smoke_hosted.py`, which signs in with a temporary account, validates JSON, runs a real extraction, and removes the account. Check `/healthz`, sign-in, and the extract and validate forms after a deploy. The hosted app currently relies on a limited model account, so configure capacity and usage controls before broad public traffic. See [DEPLOYMENT.md](DEPLOYMENT.md) and [SECURITY.md](SECURITY.md) for the full release notes.
+
+### Common issues
+
+| Symptom | Check |
+|---|---|
+| `validate` rejects a number written as a string | Strict validation keeps `"2"` distinct from `2`; fix the input or choose the intended field type. |
+| `extract` reports a provider error | Confirm the server-side key, base URL, model ID, and provider quota. |
+| A hosted action asks you to sign in | Refresh the session or sign in again; browser actions require an account. |
+| A field is missing after extraction | Add it to the schema and make the extraction instruction explicit. |
+
+For application code, catch `OutputValidationError` and decide whether to ask for a corrected input, log a failed extraction, or hand it to a reviewer. Do not silently substitute an unvalidated model response.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

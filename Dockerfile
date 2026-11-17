@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.15-slim
 WORKDIR /app
 COPY . /app
 RUN python -m pip install --no-cache-dir . && useradd --uid 10001 --create-home app && mkdir -p /data && chown app:app /data
